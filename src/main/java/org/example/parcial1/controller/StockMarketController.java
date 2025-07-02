@@ -1,20 +1,17 @@
 package org.example.parcial1.controller;
 
-import org.example.parcial1.dto.ChatRequest;
 import org.example.parcial1.dto.ChatResponse;
+import org.example.parcial1.dto.CompareRequest;
 import org.example.parcial1.service.ChatService;
 import org.example.parcial1.service.StockMarketServices;
+import org.json.JSONObject;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.WebClient;
+
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/stock-market")
 public class StockMarketController {
-    String API = "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=IBM&apikey=X75K4OIHF5MJ8DY8";
     private final ChatService chatService;
     private final StockMarketServices stockMarketServices;
     public StockMarketController() {
@@ -34,9 +31,22 @@ public class StockMarketController {
     public String getWeeklyStockData() {
         return stockMarketServices.getWeeklyStockData();
     }
-    @PostMapping("/chatgpt-opinion")
-    public ChatResponse getChatGPTOpinion(@RequestBody ChatRequest request) throws Exception {
-        String response = chatService.chat(request.getPrompt());
+    @GetMapping("/monthly")
+    public String getMonthlyStockData() {
+        return stockMarketServices.getMonthlyStockData();
+    }
+    @PostMapping("/compare-options")
+    public ChatResponse compareOptions(@RequestBody CompareRequest request) throws Exception {
+        JSONObject json = new JSONObject(request.getJsonData());
+        JSONObject timeSeries = json.getJSONObject("Time Series (5min)");
+        JSONObject option1 = timeSeries.getJSONObject(request.getTime1());
+        JSONObject option2 = timeSeries.getJSONObject(request.getTime2());
+
+        String prompt = "dado estos 2 IBM tradestocks, cual es mejor y porque?\n"
+                + "Option 1 (" + request.getTime1() + "): " + option1.toString() + "\n"
+                + "Option 2 (" + request.getTime2() + "): " + option2.toString();
+
+        String response = chatService.chat(prompt);
         return new ChatResponse(response);
     }
 }
